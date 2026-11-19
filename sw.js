@@ -1,5 +1,5 @@
 // Sorgt dafür, dass die Kasse auch ohne Internet startet.
-const CACHE = 'kasse-v1';
+const CACHE = 'kasse-v2';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {

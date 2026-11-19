@@ -892,8 +892,9 @@ function exportBackup() {
 }
 function openExport() {
   openModal('<h2 id="modal-title">Export &amp; Sicherung</h2>' +
-    '<p>Die Datei wird über „Teilen“ weitergegeben – z. B. mit „In Dateien sichern“, AirDrop oder Mail. Tipp: Jeden Abend einmal sichern.</p>' +
+    '<p>Die Datei wird über „Teilen“ weitergegeben – z. B. mit „In Dateien sichern“, AirDrop oder Mail. Den Zeitraum für die PDF wählst du oben in der Auswertung. Tipp: Jeden Abend einmal sichern.</p>' +
     '<div class="menu">' +
+      '<button class="menu-item" data-act="expPdf"><strong>Übersicht als PDF (eine Seite)</strong><span>Umsatz und Einnahmen je Produkt · Zeitraum: ' + esc(periodShort(resolvePeriod())) + '</span></button>' +
       '<button class="menu-item" data-act="expSummary"><strong>Übersicht für Excel</strong><span>Pro Tag: Menge und Umsatz je Produkt, dazu Umsatz pro Stunde</span></button>' +
       '<button class="menu-item" data-act="expItems"><strong>Alle Verkäufe einzeln für Excel</strong><span>Jede verkaufte Position mit Datum und Uhrzeit</span></button>' +
       '<button class="menu-item" data-act="expBackup"><strong>Komplette Sicherung</strong><span>Produkte und alle Verkäufe als Datei, zum Wiederherstellen</span></button>' +
@@ -957,6 +958,226 @@ function importBackup(file) {
         render();
       });
   }).catch(function () { toast('Datei konnte nicht gelesen werden', true); });
+}
+
+/* ---------- PDF-Übersicht (eine Seite, funktioniert offline) ---------- */
+var HELV=[278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584,761,556,0,222,556,333,1000,556,556,333,1000,667,333,1000,0,611,0,0,222,222,333,333,350,556,1000,333,1000,500,333,944,0,500,667,278,333,556,556,556,556,260,556,333,737,370,556,584,333,737,333,400,584,333,333,333,556,537,278,333,333,365,556,834,834,834,611,667,667,667,667,667,667,1000,722,667,667,667,667,278,278,278,278,722,722,778,778,778,778,778,584,778,722,722,722,722,667,667,611,556,556,556,556,556,556,889,500,556,556,556,556,278,278,278,278,556,556,556,556,556,556,556,584,611,556,556,556,556,500,556,500];
+var HELVB=[278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584,761,556,0,278,556,500,1000,556,556,333,1000,667,333,1000,0,611,0,0,278,278,500,500,350,556,1000,333,1000,556,333,944,0,500,667,278,333,556,556,556,556,280,556,333,737,370,556,584,333,737,333,400,584,333,333,333,611,556,278,333,333,365,556,834,834,834,611,722,722,722,722,722,722,1000,722,667,667,667,667,278,278,278,278,722,722,778,778,778,778,778,584,778,722,722,722,722,667,667,611,556,556,556,556,556,556,889,556,556,556,556,556,278,278,278,278,611,611,611,611,611,611,611,584,611,611,611,611,611,556,611,556];
+var PW = 595.28, PH = 841.89;
+var WIN = { 0x20AC: 0x80, 0x201A: 0x82, 0x201E: 0x84, 0x2026: 0x85, 0x2018: 0x91, 0x2019: 0x92, 0x201C: 0x93, 0x201D: 0x94, 0x2022: 0x95, 0x2013: 0x96, 0x2014: 0x97, 0x2212: 0x2D, 0x0160: 0x8A, 0x0161: 0x9A, 0x0152: 0x8C, 0x0153: 0x9C };
+var WD_LONG = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+function pdfCodes(str) {
+  var out = [];
+  Array.from(String(str)).forEach(function (ch) {
+    var c = ch.codePointAt(0);
+    if ((c >= 32 && c <= 126) || (c >= 160 && c <= 255)) out.push(c);
+    else if (WIN[c]) out.push(WIN[c]);
+    else out.push(63);
+  });
+  return out;
+}
+function pdfWidth(str, size, bold) {
+  var t = bold ? HELVB : HELV;
+  return pdfCodes(str).reduce(function (a, c) { return a + (t[c - 32] || 556); }, 0) * size / 1000;
+}
+function pdfFit(str, size, bold, max) {
+  str = String(str);
+  if (pdfWidth(str, size, bold) <= max) return str;
+  while (str.length > 1 && pdfWidth(str + '…', size, bold) > max) str = str.slice(0, -1);
+  return str + '…';
+}
+function pdfStr(str) {
+  return '(' + pdfCodes(str).map(function (c) {
+    if (c === 40 || c === 41 || c === 92) return '\\' + String.fromCharCode(c);
+    if (c < 32 || c > 126) return '\\' + c.toString(8).padStart(3, '0');
+    return String.fromCharCode(c);
+  }).join('') + ')';
+}
+function pdfRgb(hex) {
+  var n = parseInt(String(hex).slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(function (v) { return (v / 255).toFixed(3); }).join(' ');
+}
+function PdfDoc() { this.pages = []; this.newPage(); }
+PdfDoc.prototype.newPage = function () { this.cur = []; this.pages.push(this.cur); };
+PdfDoc.prototype.text = function (x, top, str, size, opt) {
+  opt = opt || {};
+  var w = pdfWidth(str, size, opt.bold);
+  if (opt.align === 'right') x -= w; else if (opt.align === 'center') x -= w / 2;
+  this.cur.push('BT /' + (opt.bold ? 'F2' : 'F1') + ' ' + size + ' Tf ' + pdfRgb(opt.color || '#1A1A1A') + ' rg ' +
+    x.toFixed(2) + ' ' + (PH - top).toFixed(2) + ' Td ' + pdfStr(str) + ' Tj ET');
+};
+PdfDoc.prototype.rect = function (x, top, w, h, fill) {
+  this.cur.push(pdfRgb(fill) + ' rg ' + x.toFixed(2) + ' ' + (PH - top - h).toFixed(2) + ' ' + w.toFixed(2) + ' ' + h.toFixed(2) + ' re f');
+};
+PdfDoc.prototype.line = function (x1, top, x2, color, width) {
+  var yy = (PH - top).toFixed(2);
+  this.cur.push(pdfRgb(color) + ' RG ' + (width || 0.5) + ' w ' + x1.toFixed(2) + ' ' + yy + ' m ' + x2.toFixed(2) + ' ' + yy + ' l S');
+};
+PdfDoc.prototype.build = function () {
+  var objs = [];
+  objs[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+  objs[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+  objs[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+  var kids = [], n = 5;
+  this.pages.forEach(function (ops) {
+    var pageId = n++, contId = n++;
+    var stream = ops.join('\n');
+    objs[contId] = '<< /Length ' + stream.length + ' >>\nstream\n' + stream + '\nendstream';
+    objs[pageId] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + PW + ' ' + PH + '] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ' + contId + ' 0 R >>';
+    kids.push(pageId + ' 0 R');
+  });
+  objs[2] = '<< /Type /Pages /Kids [' + kids.join(' ') + '] /Count ' + kids.length + ' >>';
+  var out = '%PDF-1.4\n', offs = [];
+  for (var i = 1; i < objs.length; i++) { offs[i] = out.length; out += i + ' 0 obj\n' + objs[i] + '\nendobj\n'; }
+  var xref = out.length;
+  out += 'xref\n0 ' + objs.length + '\n0000000000 65535 f \n';
+  for (var j = 1; j < objs.length; j++) out += String(offs[j]).padStart(10, '0') + ' 00000 n \n';
+  out += 'trailer\n<< /Size ' + objs.length + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF\n';
+  return out;
+};
+
+function longDay(k) { var d = parseDay(k); return WD_LONG[d.getDay()] + ', ' + fmtDate(k); }
+function periodShort(P) {
+  if (P.single) return P.label === fmtDay(P.day) ? P.label : P.label + ' ' + fmtDay(P.day);
+  return 'Ganzer Markt';
+}
+function exportPdf() {
+  var P = resolvePeriod();
+  var sales = [];
+  P.days.forEach(function (d) { sales = sales.concat(salesOf(d)); });
+  if (!sales.length) { toast('In diesem Zeitraum gibt es keine Verkäufe', true); return; }
+  var A = aggregate(sales, null);
+  var rev = sumBy(sales, function (s) { return s.s; });
+  var cnt = sales.length;
+  var byDay = !P.single && P.days.length > 1;
+
+  var doc = new PdfDoc();
+  var M = 48, R = PW - 48, BOTTOM = PH - 56;
+  var DARK = '#1A1A1A', GREY = '#6B6B6B', LINE = '#DDD7D0', SOFT = '#F4F1EC';
+  var y;
+  var now = new Date();
+
+  function header(first) {
+    if (first) {
+      doc.text(M, 66, 'Verkaufsübersicht', 22, { bold: true });
+      var sub = P.single
+        ? longDay(P.day) + (P.day === todayKey() ? ' (heute)' : '')
+        : 'Ganzer Markt: ' + fmtDate(P.days[0]) + ' – ' + fmtDate(P.days[P.days.length - 1]) + ' · ' + P.days.length + ' Markttage';
+      doc.text(M, 86, sub, 11, { color: GREY });
+      doc.text(R, 58, 'Kasse · Glühwein · Crêpes · Pommes', 9, { align: 'right', color: GREY });
+      doc.text(R, 71, 'Erstellt am ' + fmtDate(dayKey(now)) + ', ' + hhmm(now.getTime()) + ' Uhr', 9, { align: 'right', color: GREY });
+      doc.line(M, 102, R, LINE, 1);
+      y = 118;
+    } else {
+      doc.text(M, 56, 'Verkaufsübersicht (Fortsetzung)', 12, { bold: true });
+      doc.line(M, 66, R, LINE, 1);
+      y = 84;
+    }
+  }
+  function need(h) { if (y + h > BOTTOM) { doc.newPage(); header(false); return true; } return false; }
+
+  header(true);
+
+  // Kennzahlen
+  var kp = [['Umsatz', money(rev)], ['Verkäufe', String(cnt)], ['Artikel verkauft', String(A.items)], ['Ø pro Verkauf', money(rev / cnt)]];
+  var gap = 10, bw = (R - M - gap * 3) / 4;
+  kp.forEach(function (k, i) {
+    var x = M + i * (bw + gap);
+    doc.rect(x, y, bw, 56, SOFT);
+    doc.text(x + 12, y + 19, k[0], 9, { color: GREY });
+    doc.text(x + 12, y + 42, k[1], i === 0 ? 18 : 16, { bold: true });
+  });
+  y += 56 + 30;
+
+  // Einnahmen nach Produkt
+  var C_CAT = M + 236, C_QTY = R - 168, C_REV = R - 66;
+  function prodHead() {
+    doc.text(M, y, 'Einnahmen nach Produkt', 13, { bold: true });
+    y += 20;
+    doc.text(M, y, 'Produkt', 9, { color: GREY });
+    doc.text(C_CAT, y, 'Kategorie', 9, { color: GREY });
+    doc.text(C_QTY, y, 'Stück', 9, { color: GREY, align: 'right' });
+    doc.text(C_REV, y, 'Einnahmen', 9, { color: GREY, align: 'right' });
+    doc.text(R, y, 'Anteil', 9, { color: GREY, align: 'right' });
+    y += 6;
+    doc.line(M, y, R, '#9C948B', 0.8);
+  }
+  prodHead();
+  A.prods.forEach(function (p) {
+    if (need(20)) prodHead();
+    var pct = A.rev ? p.rev / A.rev * 100 : 0;
+    doc.rect(M, y + 6, 8, 8, p.color);
+    doc.text(M + 14, y + 14, pdfFit(p.name, 10, false, C_CAT - M - 24), 10);
+    doc.text(C_CAT, y + 14, pdfFit(p.cat, 10, false, C_QTY - C_CAT - 40), 10, { color: GREY });
+    doc.text(C_QTY, y + 14, String(p.qty), 10, { align: 'right' });
+    doc.text(C_REV, y + 14, money(p.rev), 10, { align: 'right', bold: true });
+    doc.text(R, y + 14, pct.toFixed(1).replace('.', ',') + ' %', 10, { align: 'right', color: GREY });
+    y += 20;
+    doc.line(M, y, R, LINE, 0.5);
+  });
+  need(24);
+  doc.line(M, y, R, DARK, 1);
+  doc.text(M + 14, y + 15, 'Summe', 10, { bold: true });
+  doc.text(C_QTY, y + 15, String(A.items), 10, { align: 'right', bold: true });
+  doc.text(C_REV, y + 15, money(A.rev), 10, { align: 'right', bold: true });
+  doc.text(R, y + 15, '100 %', 10, { align: 'right', color: GREY });
+  y += 24 + 26;
+
+  // Zwei Spalten: Kategorien links, Stunden bzw. Tage rechts
+  var right = byDay
+    ? P.days.map(function (d) { var l = salesOf(d); var v = sumBy(l, function (s) { return s.s; }); return [fmtDay(d), String(l.length), money(v), v]; })
+    : hourBuckets(sales).map(function (b) { return [pad2(b.h) + '–' + pad2(b.h + 1) + ' Uhr', String(b.n), money(b.rev), b.rev]; });
+  var rowsH = Math.max(A.cats.length, right.length) * 17 + 40;
+  need(Math.min(rowsH, BOTTOM - 84));
+  var LX = M, LR = M + 232, RX = M + 262;
+  var top0 = y;
+  doc.text(LX, y, 'Nach Kategorie', 13, { bold: true });
+  doc.text(RX, y, byDay ? 'Umsatz pro Tag' : 'Umsatz pro Stunde', 13, { bold: true });
+  y += 20;
+  doc.text(LX, y, 'Kategorie', 9, { color: GREY });
+  doc.text(LR - 80, y, 'Stück', 9, { color: GREY, align: 'right' });
+  doc.text(LR, y, 'Einnahmen', 9, { color: GREY, align: 'right' });
+  doc.text(RX, y, byDay ? 'Tag' : 'Stunde', 9, { color: GREY });
+  doc.text(R - 86, y, 'Verkäufe', 9, { color: GREY, align: 'right' });
+  doc.text(R, y, 'Umsatz', 9, { color: GREY, align: 'right' });
+  y += 6;
+  doc.line(LX, y, LR, '#9C948B', 0.8);
+  doc.line(RX, y, R, '#9C948B', 0.8);
+  var catQty = {};
+  A.prods.forEach(function (p) { catQty[p.cat] = (catQty[p.cat] || 0) + p.qty; });
+  var startY = y;
+  A.cats.forEach(function (c, i) {
+    var ry = startY + i * 17;
+    doc.rect(LX, ry + 5, 7, 7, c.color);
+    doc.text(LX + 12, ry + 12.5, pdfFit(c.name, 9.5, false, 120), 9.5);
+    doc.text(LR - 80, ry + 12.5, String(catQty[c.name] || 0), 9.5, { align: 'right' });
+    doc.text(LR, ry + 12.5, money(c.rev), 9.5, { align: 'right', bold: true });
+    doc.line(LX, ry + 17, LR, LINE, 0.5);
+  });
+  var best = right.length ? right.reduce(function (a, r) { return r[3] > a[3] ? r : a; }) : null;
+  right.forEach(function (r, i) {
+    var ry = startY + i * 17;
+    if (ry + 17 > BOTTOM) return;
+    var isBest = r === best;
+    doc.text(RX, ry + 12.5, r[0], 9.5, { bold: isBest });
+    doc.text(R - 86, ry + 12.5, r[1], 9.5, { align: 'right' });
+    doc.text(R, ry + 12.5, r[2], 9.5, { align: 'right', bold: true });
+    doc.line(RX, ry + 17, R, LINE, 0.5);
+  });
+  y = startY + Math.max(A.cats.length, right.length) * 17 + 14;
+  if (best && y + 12 <= BOTTOM) doc.text(RX, y, (byDay ? 'Bester Tag: ' : 'Stärkste Stunde: ') + best[0], 8.5, { color: GREY });
+
+  // Fußzeile auf jeder Seite
+  var total = doc.pages.length;
+  doc.pages.forEach(function (ops, i) {
+    doc.cur = ops;
+    doc.line(M, PH - 40, R, LINE, 0.5);
+    doc.text(M, PH - 26, 'Interne Auswertung aus der Kassen-App', 8, { color: GREY });
+    doc.text(R, PH - 26, 'Seite ' + (i + 1) + ' von ' + total, 8, { color: GREY, align: 'right' });
+  });
+
+  var name = 'kasse-bericht-' + (P.single ? P.day : 'gesamt') + '.pdf';
+  shareFile(name, doc.build(), 'application/pdf');
 }
 
 /* ---------- Anzeige: Produkte ---------- */
@@ -1158,6 +1379,7 @@ var H = {
   allChart: function (m) { S.allChart = m; S.hour = null; renderStats(); },
   openDay: function (d) { S.period = { type: 'day', day: d }; S.hour = null; renderStats(); },
   exportMenu: function () { openExport(); },
+  expPdf: function () { closeModal(); exportPdf(); },
   expSummary: function () { closeModal(); exportSummary(); },
   expItems: function () { closeModal(); exportItems(); },
   expBackup: function () { closeModal(); exportBackup(); },
