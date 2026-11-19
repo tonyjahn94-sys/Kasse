@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Kasse">
+<meta name="theme-color" content="#17120F">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>Kasse</title>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#17120F;--s1:#231C18;--s2:#2E2520;--line:#3A2F28;--tx:#F7F0E8;--mu:#B9AA9C;--ok:#3FB565;--okTx:#7BD88F;--warn:#F2A65A;--bad:#F08A7E;--accent:#E9A04B}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,system-ui,sans-serif;font-variant-numeric:tabular-nums;-webkit-text-size-adjust:100%;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+body{overflow:hidden;overscroll-behavior:none}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:disabled{cursor:default}
+input,select{font:inherit}
+.muted{color:var(--mu)}
+.small{font-size:13px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+#app{height:100vh;height:100dvh;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+
+/* Kopfzeile */
+.top{height:64px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 16px;border-bottom:1px solid var(--s2)}
+.brand{flex:1;min-width:0;display:flex;align-items:center;gap:12px}
+.logo{width:40px;height:40px;flex-shrink:0;border-radius:10px;background:#9E1F33;color:#fff;display:flex;align-items:center;justify-content:center}
+.brand-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.brand-name{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.brand-sub{font-size:12px;color:var(--mu);white-space:nowrap}
+.tabs{display:flex;gap:4px;padding:4px;background:var(--s1);border-radius:12px;flex-shrink:0}
+.tab{height:44px;padding:0 20px;border:none;border-radius:9px;background:transparent;color:var(--mu);font-size:15px;font-weight:600}
+.tab[aria-current="page"]{background:var(--tx);color:var(--bg)}
+.top-right{flex:1;min-width:0;display:flex;align-items:center;justify-content:flex-end;gap:14px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:none;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.pill .dot{width:8px;height:8px;border-radius:50%}
+.pill.ok{background:#1F2B22;color:#9FE0AE}.pill.ok .dot{background:#5BC97A}
+.pill.warn{background:#33241A;color:var(--warn)}.pill.warn .dot{background:var(--warn)}
+.pill.bad{background:#3A1C1C;color:var(--bad)}.pill.bad .dot{background:var(--bad)}
+.today{display:flex;flex-direction:column;align-items:flex-end;gap:1px;white-space:nowrap}
+.today small{font-size:11px;color:var(--mu)}
+.today strong{font-size:17px}
+
+main{flex:1;min-height:0;display:flex}
+.view{flex:1;min-width:0;min-height:0;display:flex;gap:16px;padding:16px}
+.view[hidden]{display:none!important}
+.view.col{flex-direction:column;overflow-y:auto;gap:12px}
+
+/* Allgemeine Buttons */
+.btn{height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--s2);color:var(--tx);font-size:15px;font-weight:600;white-space:nowrap}
+.btn.primary{background:var(--ok);border-color:var(--ok);color:#0E1A12}
+.btn.light{background:var(--tx);border-color:var(--tx);color:var(--bg)}
+.btn.danger,.btn.armed{background:#5A1F22;border-color:#7A2A2E;color:#FFD9D4}
+.btn.ghost{background:transparent}
+.btn.tall{height:52px}
+.btn.big{height:56px;font-size:17px;font-weight:700;border-radius:14px}
+.linkbtn{height:44px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 12px;border:none;border-radius:10px;background:transparent;color:var(--mu);font-size:14px;font-weight:600}
+.linkbtn.danger{color:var(--bad);font-size:15px}
+.step{width:44px;height:44px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1px solid var(--line);border-radius:12px;background:var(--s2);color:var(--tx)}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;border:1.5px dashed var(--line);border-radius:14px;padding:24px;color:var(--mu);font-size:15px}
+.empty strong{color:var(--tx);font-size:16px}
+.empty.wide{grid-column:1/-1}
+
+/* Kasse */
+.prod-area{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px}
+.tiles{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));grid-auto-rows:minmax(118px,1fr);gap:12px;-webkit-overflow-scrolling:touch}
+.tile{min-height:0;display:flex;flex-direction:column;justify-content:space-between;align-items:stretch;text-align:left;padding:14px 16px;border:none;border-radius:18px;overflow:hidden}
+.tile:active{transform:scale(.98)}
+.tile.hit{animation:hit .25s ease-out}
+@keyframes hit{0%{filter:brightness(1.35)}100%{filter:brightness(1)}}
+.tile-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.tile-cat{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.85}
+.badge{min-width:34px;height:34px;padding:0 9px;border-radius:999px;background:#17120F;color:#F7F0E8;font-size:17px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+.tile-bottom{display:flex;flex-direction:column;gap:4px}
+.tile-name{font-size:22px;font-weight:700;line-height:1.15}
+.tile-price{font-size:18px;font-weight:500;opacity:.92}
+.last{height:64px;flex-shrink:0;display:flex;align-items:center;gap:14px;padding:0 10px 0 18px;background:var(--s1);border-radius:16px}
+.last-label{flex-shrink:0;font-size:13px;font-weight:600;color:var(--mu)}
+.last-text{flex:1;min-width:0;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.bon{width:380px;flex-shrink:0;min-height:0;display:flex;flex-direction:column;gap:10px;padding:16px;background:var(--s1);border-radius:20px}
+.bon-head{height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+.bon-head h2{margin:0;font-size:18px}
+.lines{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column}
+.line{min-height:56px;display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--s2)}
+.qty{width:26px;flex-shrink:0;text-align:center;font-size:18px;font-weight:700}
+.line-name{flex:1;min-width:0;padding-left:4px;font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line-sum{flex-shrink:0;font-size:16px;font-weight:600}
+.sum{flex-shrink:0;display:flex;justify-content:space-between;align-items:baseline;padding-top:8px;border-top:1px solid var(--line)}
+.sum span{font-size:16px;font-weight:600;color:var(--mu)}
+.sum strong{font-size:40px;font-weight:800;letter-spacing:-.02em}
+.given{height:48px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.given-label{font-size:16px;font-weight:600;color:var(--mu)}
+.given-right{display:flex;align-items:center;gap:8px}
+.given-amt{height:48px;padding:0 12px;border:1.5px dashed var(--line);border-radius:12px;background:transparent;font-size:26px;font-weight:700}
+.cash{flex-shrink:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.cash button{height:52px;padding:0;border-radius:12px;border:1px solid var(--line);background:var(--s2);font-size:17px;font-weight:700}
+.cash button:active,.step:active,.btn:active,.padkey:active{filter:brightness(1.25)}
+.cash .exact{background:var(--tx);border-color:var(--tx);color:var(--bg)}
+.chg{height:76px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 18px;border-radius:14px;background:#1C1613}
+.chg span{font-size:16px;font-weight:600;color:var(--mu)}
+.chg strong{font-size:36px;font-weight:800;letter-spacing:-.02em;color:var(--mu);white-space:nowrap}
+.chg.ask span{color:var(--tx)}
+.chg.short{background:#2E1F14}.chg.short span,.chg.short strong{color:var(--warn)}
+.chg.ok{background:#16261B}.chg.ok span{color:#9FE0AE}.chg.ok strong{color:var(--okTx)}
+.chg.out{background:#1A2230}.chg.out span,.chg.out strong{color:#A9C8F0}
+.pay{height:64px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;gap:10px;border:none;border-radius:16px;background:var(--ok);color:#0E1A12;font-size:19px;font-weight:700}
+.pay:active{filter:brightness(1.1)}
+.pay:disabled{background:var(--s2);color:#8C7D70}
+
+/* Auswertung */
+.toolbar{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.toolbar-left,.toolbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.seg{display:flex;gap:4px;padding:4px;background:var(--s1);border-radius:12px}
+.seg button{height:44px;padding:0 16px;border:none;border-radius:9px;background:transparent;color:var(--mu);font-size:15px;font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--tx);color:var(--bg)}
+.seg.mini button{height:36px;padding:0 12px;font-size:13px}
+.select{height:52px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--tx);font-size:15px;font-weight:600;-webkit-appearance:none;appearance:none;min-width:170px}
+.period{margin:2px 0 0;font-size:15px;font-weight:600;color:var(--mu)}
+.kpis{flex-shrink:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi{background:var(--s1);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.kpi span{font-size:13px;font-weight:600;color:var(--mu)}
+.kpi strong{font-size:30px;font-weight:800;letter-spacing:-.02em;white-space:nowrap}
+.kpi small{font-size:13px;color:var(--mu)}
+.panels{flex-shrink:0;display:flex;gap:12px;flex-wrap:wrap;align-items:stretch}
+.card{background:var(--s1);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card h2{margin:0;font-size:17px}
+.card-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;min-height:36px}
+.chart-card{flex:1 1 420px}
+.prod-card{flex:1 1 480px}
+.chart{height:clamp(180px,36vh,320px);display:flex;align-items:flex-end;gap:6px;border-bottom:1px solid var(--line)}
+.bar-col{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;padding:0;border:none;background:transparent;border-radius:6px 6px 0 0}
+.bar-val{font-size:11px;font-weight:600;color:var(--mu);white-space:nowrap}
+.bar{display:block;width:100%;min-height:2px;border-radius:6px 6px 2px 2px;background:#8A5A3B}
+.bar-col.peak .bar{background:var(--accent)}
+.bar-col.peak .bar-val{color:var(--tx)}
+.bar-col.sel .bar{background:var(--tx)}
+.bar-col.sel .bar-val{color:var(--tx)}
+.bar-col.dim .bar{opacity:.4}
+.chart.dense .bar-val{display:none}
+.chart.dense .bar-col.sel .bar-val,.chart.dense .bar-col.peak .bar-val{display:block}
+.axis{display:flex;gap:6px}
+.axis span{flex:1;min-width:0;text-align:center;font-size:12px;color:var(--mu);white-space:nowrap;overflow:hidden}
+.split{display:flex;gap:2px;height:14px;border-radius:7px;overflow:hidden;background:var(--s2)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--mu)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend strong{color:var(--tx)}
+.dot10{width:10px;height:10px;border-radius:3px;flex-shrink:0;display:inline-block}
+.trow{display:grid;grid-template-columns:minmax(0,1fr) 56px 100px 122px;align-items:center;min-height:38px;border-top:1px solid var(--s2);font-size:14px}
+.trow.head{min-height:30px;border-top:none;font-size:12px;font-weight:600;color:var(--mu)}
+.trow .r{text-align:right}
+.tname{display:flex;align-items:center;gap:10px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.share{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+.share-track{display:block;width:62px;height:6px;border-radius:3px;overflow:hidden;background:var(--line)}
+.share-fill{display:block;height:100%}
+.share-pct{width:48px;text-align:right;font-size:13px;color:var(--mu)}
+.chipbtn{height:36px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--s2);font-size:13px;font-weight:600}
+
+/* Produkte */
+.plist-card{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;padding:18px;background:var(--s1);border-radius:20px}
+.plist-head{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.plist-head h2{margin:0;font-size:20px}
+.plist{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.pgroup{display:flex;flex-direction:column;gap:4px}
+.pgroup-head{min-height:24px;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu)}
+.pgroup-head .cnt{font-weight:500;letter-spacing:0;text-transform:none}
+.prow{min-height:54px;display:flex;align-items:center;gap:8px;padding:2px 5px 2px 2px;border-radius:12px;border:1.5px solid transparent}
+.prow.sel{border-color:var(--accent);background:var(--s2)}
+.mv{display:flex;flex-shrink:0}
+.mvbtn{width:36px;height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:none;border-radius:8px;background:transparent;color:#A08F80}
+.mvbtn:disabled{opacity:.25}
+.sw-md{width:28px;height:28px;flex-shrink:0;border-radius:8px}
+.pname{flex:1;min-width:0;min-height:44px;padding:6px 0 6px 4px;text-align:left;border:none;background:transparent;font-size:16px;font-weight:600;line-height:1.2;overflow-wrap:anywhere}
+.pprice{width:84px;flex-shrink:0;text-align:right;font-size:16px;font-weight:600}
+.prow.off .pname,.prow.off .pprice{color:#A08F80}
+.switch{width:64px;height:44px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;padding:0;border:none;background:transparent}
+.track{width:46px;height:28px;display:flex;align-items:center;justify-content:flex-start;padding:3px;border-radius:14px;background:#4A3E36}
+.switch.on .track{background:var(--ok);justify-content:flex-end}
+.knob{display:block;width:22px;height:22px;border-radius:50%;background:#fff}
+.hint{flex-shrink:0;margin:0;font-size:13px;color:var(--mu)}
+.editor{width:400px;flex-shrink:0;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:18px 20px;background:var(--s1);border-radius:20px}
+.editor h2{margin:0;font-size:20px}
+.field{display:flex;flex-direction:column;gap:7px}
+.flabel{font-size:13px;font-weight:600;color:var(--mu)}
+.input{width:100%;height:48px;padding:0 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--tx);font-size:17px;-webkit-appearance:none;appearance:none}
+.input:focus{outline:none;border-color:var(--accent)}
+.money-in{display:flex;align-items:center;height:48px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);padding-right:14px}
+.money-in:focus-within{border-color:var(--accent)}
+.money-in .input{height:44px;border:none;background:transparent}
+.money-in span{font-size:17px;color:var(--mu)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{height:44px;display:inline-flex;align-items:center;gap:6px;padding:0 14px;border-radius:10px;border:1.5px solid var(--line);background:transparent;font-size:15px;font-weight:600}
+.chip[aria-pressed="true"]{background:var(--tx);border-color:var(--tx);color:var(--bg)}
+.swatches{display:flex;flex-wrap:wrap;gap:8px}
+.swatch{width:42px;height:42px;padding:0;border-radius:50%;border:3px solid var(--s1);box-shadow:0 0 0 2px transparent}
+.swatch[aria-pressed="true"]{box-shadow:0 0 0 2px var(--tx)}
+.tile.preview{width:220px;height:96px;flex:none;padding:12px 14px;border-radius:16px}
+.tile.preview .tile-cat{font-size:11px}
+.tile.preview .tile-name{font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile.preview .tile-price{font-size:15px}
+.editor-actions{margin-top:auto;display:flex;flex-direction:column;gap:4px;padding-top:4px}
+
+/* Dialoge */
+.modal{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(10,7,5,.72)}
+.modal[hidden]{display:none}
+.modal-box{width:min(460px,100%);max-height:100%;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding:22px;background:var(--s1);border:1px solid var(--line);border-radius:20px}
+.modal-box h2{margin:0;font-size:20px}
+.modal-box p{margin:0;color:var(--mu);font-size:15px;line-height:1.45}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.modal-actions .btn{height:48px;min-width:120px}
+.steps{margin:0;padding-left:22px;font-size:15px;line-height:1.5}
+.steps li{margin-bottom:4px}
+.pad-display{height:72px;display:flex;align-items:center;justify-content:flex-end;padding:0 16px;border-radius:14px;background:var(--bg);font-size:38px;font-weight:800}
+.pad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.padkey{height:60px;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;border:1px solid var(--line);background:var(--s2);font-size:24px;font-weight:700}
+.menu{display:flex;flex-direction:column;gap:8px}
+.menu-item{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--s2)}
+.menu-item strong{font-size:16px}
+.menu-item span{font-size:13px;color:var(--mu)}
+.menu-item.danger strong{color:var(--bad)}
+
+.toast{position:fixed;left:50%;bottom:28px;z-index:50;transform:translate(-50%,16px);opacity:0;transition:opacity .18s,transform .18s;pointer-events:none;max-width:90vw;padding:12px 18px;border-radius:12px;background:var(--tx);color:var(--bg);font-size:15px;font-weight:600;box-shadow:0 8px 28px rgba(0,0,0,.45)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast.bad{background:var(--bad);color:#2A0E0C}
+
+@media (max-width:1050px){.brand-sub{display:none}.tab{padding:0 14px}.bon{width:340px}.editor{width:340px}.prow .step{display:none}.pprice{width:72px}.mvbtn{width:32px}}
+@media (max-width:860px){.brand-text{display:none}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5V9z"/><path d="M16 11h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8.5 3.5c0 1 1 1 1 2s-1 1-1 2M12.5 3.5c0 1 1 1 1 2s-1 1-1 2"/></svg></div>
+      <div class="brand-text"><span class="brand-name">Kasse</span><span class="brand-sub">Glühwein · Crêpes · Pommes</span></div>
+    </div>
+    <nav class="tabs" aria-label="Bereiche">
+      <button class="tab" data-act="nav" data-arg="kasse" aria-current="page">Kasse</button>
+      <button class="tab" data-act="nav" data-arg="auswertung">Auswertung</button>
+      <button class="tab" data-act="nav" data-arg="produkte">Produkte</button>
+    </nav>
+    <div class="top-right">
+      <span id="status"></span>
+      <div class="today"><small id="todayCount"></small><strong id="todayTotal"></strong></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="view" id="view-kasse">
+      <div class="prod-area">
+        <div class="tiles" id="tiles" aria-label="Produkte"></div>
+        <div class="last" id="last"></div>
+      </div>
+      <aside class="bon" aria-label="Aktueller Bon">
+        <div class="bon-head">
+          <h2>Aktueller Bon</h2>
+          <button class="linkbtn" data-act="clear"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>Leeren</button>
+        </div>
+        <div class="lines" id="lines"></div>
+        <div class="sum"><span>Summe</span><strong id="sum">0,00 €</strong></div>
+        <div class="given">
+          <span class="given-label">Kunde gibt</span>
+          <div class="given-right">
+            <button class="given-amt" id="givenAmt" data-act="keypad" aria-label="Betrag eintippen">0,00 €</button>
+            <button class="step" data-act="resetGiven" aria-label="Betrag zurücksetzen"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+        </div>
+        <div class="cash">
+          <button data-act="cash" data-arg="50" aria-label="50 Cent dazu">+0,50</button>
+          <button data-act="cash" data-arg="100" aria-label="1 Euro dazu">+1 €</button>
+          <button data-act="cash" data-arg="200" aria-label="2 Euro dazu">+2 €</button>
+          <button data-act="cash" data-arg="500" aria-label="5 Euro dazu">+5 €</button>
+          <button data-act="cash" data-arg="1000" aria-label="10 Euro dazu">+10 €</button>
+          <button data-act="cash" data-arg="2000" aria-label="20 Euro dazu">+20 €</button>
+          <button data-act="cash" data-arg="5000" aria-label="50 Euro dazu">+50 €</button>
+          <button class="exact" data-act="exact" aria-label="Kunde zahlt passend">Passend</button>
+        </div>
+        <div class="chg" id="chg"></div>
+        <button class="pay" id="pay" data-act="pay"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>Verkauf abschließen</button>
+      </aside>
+    </section>
+
+    <section class="view col" id="view-auswertung" hidden></section>
+
+    <section class="view" id="view-produkte" hidden>
+      <section class="plist-card" aria-labelledby="h-plist">
+        <div class="plist-head">
+          <div><h2 id="h-plist">Produkte</h2><span class="muted small" id="psum"></span></div>
+          <button class="btn light tall" data-act="newProd"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Neues Produkt</button>
+        </div>
+        <div class="plist" id="plist"></div>
+        <p class="hint">Schalter aus = Produkt verschwindet von der Kasse, bleibt aber in der Auswertung. Mit den Pfeilen änderst du die Reihenfolge.</p>
+      </section>
+      <aside class="editor" id="editor" aria-label="Produkt bearbeiten"></aside>
+    </section>
+  </main>
+</div>
+
+<div class="modal" id="modal" hidden><div class="modal-box" id="modalBox" role="dialog" aria-modal="true" aria-labelledby="modal-title"></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="importFile" accept=".json,application/json" hidden>
+
+<script>
+(function () {
+'use strict';
+
+/* ---------- Grunddaten ---------- */
+var PREFIX = 'kasse.v1.';
+var PALETTE = [
+  { name: 'Glühweinrot', hex: '#9E1F33', fg: '#FFFFFF' },
+  { name: 'Karamell', hex: '#D9822B', fg: '#1A120C' },
+  { name: 'Senfgelb', hex: '#EBC55A', fg: '#1A120C' },
+  { name: 'Tannengrün', hex: '#2F7D55', fg: '#FFFFFF' },
+  { name: 'Nachtblau', hex: '#2C5A8C', fg: '#FFFFFF' },
+  { name: 'Pflaume', hex: '#6B3A6E', fg: '#FFFFFF' },
+  { name: 'Zimtbraun', hex: '#8A4B2A', fg: '#FFFFFF' },
+  { name: 'Schiefer', hex: '#55606E', fg: '#FFFFFF' }
+];
+var DEFAULT_PRODUCTS = [
+  { id: 'gw', name: 'Glühwein', price: 400, cat: 'Getränke', color: '#9E1F33', active: true },
+  { id: 'gs', name: 'Glühwein mit Schuss', price: 500, cat: 'Getränke', color: '#9E1F33', active: true },
+  { id: 'kp', name: 'Kinderpunsch', price: 350, cat: 'Getränke', color: '#9E1F33', active: true },
+  { id: 'cz', name: 'Crêpe Zucker & Zimt', price: 400, cat: 'Crêpes', color: '#D9822B', active: true },
+  { id: 'cn', name: 'Crêpe Nutella', price: 500, cat: 'Crêpes', color: '#D9822B', active: true },
+  { id: 'ca', name: 'Crêpe Apfelmus', price: 450, cat: 'Crêpes', color: '#D9822B', active: true },
+  { id: 'pk', name: 'Pommes klein', price: 350, cat: 'Pommes', color: '#EBC55A', active: true },
+  { id: 'pg', name: 'Pommes groß', price: 450, cat: 'Pommes', color: '#EBC55A', active: true },
+  { id: 'ps', name: 'Extra Soße', price: 50, cat: 'Pommes', color: '#EBC55A', active: true }
+];
+var WD = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+var ICON = {
+  minus: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/></svg>',
+  plus: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  undo: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>',
+  edit: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>',
+  up: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>',
+  down: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
+  download: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
+  back: '<svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h11v14H9l-6-7 6-7z"/><path d="M12 9l5 6M17 9l-5 6"/></svg>',
+  x: '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+};
+
+/* ---------- Hilfsfunktionen ---------- */
+function $(id) { return document.getElementById(id); }
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+function pad2(n) { return String(n).padStart(2, '0'); }
+function dayKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+function todayKey() { return dayKey(new Date()); }
+function parseDay(k) { var a = k.split('-').map(Number); return new Date(a[0], a[1] - 1, a[2]); }
+function fmtDay(k) { var d = parseDay(k); return WD[d.getDay()] + ' ' + pad2(d.getDate()) + '.' + pad2(d.getMonth() + 1) + '.'; }
+function fmtDate(k) { var d = parseDay(k); return pad2(d.getDate()) + '.' + pad2(d.getMonth() + 1) + '.' + d.getFullYear(); }
+function hhmm(t) { var d = new Date(t); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+function money(c) {
+  var neg = c < 0, v = Math.abs(Math.round(c));
+  var e = String(Math.floor(v / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return (neg ? '−' : '') + e + ',' + pad2(v % 100) + ' €';
+}
+function plain(c) {
+  var neg = c < 0, v = Math.abs(Math.round(c));
+  return (neg ? '-' : '') + Math.floor(v / 100) + ',' + pad2(v % 100);
+}
+function parseMoney(str) {
+  var s = String(str == null ? '' : str).replace(/[\s€]/g, '').replace(/−/g, '-').replace(',', '.');
+  if (/^-?\.\d{1,2}$/.test(s)) s = s.replace('.', '0.');
+  if (!/^-?\d+(\.\d{1,2})?$/.test(s)) return null;
+  return Math.round(parseFloat(s) * 100);
+}
+function safeColor(c) { return /^#[0-9a-fA-F]{6}$/.test(c || '') ? c : '#55606E'; }
+function fgFor(hex) {
+  var p = PALETTE.filter(function (x) { return x.hex.toLowerCase() === String(hex).toLowerCase(); })[0];
+  if (p) return p.fg;
+  var m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return '#FFFFFF';
+  var n = parseInt(m[1], 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) > 150 ? '#1A120C' : '#FFFFFF';
+}
+function clone(x) { return JSON.parse(JSON.stringify(x)); }
+function sumBy(list, fn) { return list.reduce(function (a, x) { return a + fn(x); }, 0); }
+
+/* ---------- Speicher (bleibt auf dem iPad, auch ohne Internet) ---------- */
+var storageOk = true, saveOk = true;
+try { localStorage.setItem(PREFIX + 'test', '1'); localStorage.removeItem(PREFIX + 'test'); } catch (e) { storageOk = false; }
+
+function load(key, fallback) {
+  try {
+    var raw = localStorage.getItem(PREFIX + key);
+    return raw == null ? fallback : JSON.parse(raw);
+  } catch (e) { return fallback; }
+}
+function save(key, value) {
+  try {
+    localStorage.setItem(PREFIX + key, JSON.stringify(value));
+    if (!saveOk) { saveOk = true; renderStatus(); }
+    return true;
+  } catch (e) {
+    saveOk = false;
+    renderStatus();
+    toast('Achtung: Speichern hat nicht geklappt!', true);
+    return false;
+  }
+}
+function removeKey(key) { try { localStorage.removeItem(PREFIX + key); } catch (e) {} }
+
+function cleanProducts(list) {
+  if (!Array.isArray(list)) return null;
+  var out = [];
+  list.forEach(function (p) {
+    if (!p || typeof p !== 'object') return;
+    var name = String(p.name || '').trim();
+    var price = Math.round(Number(p.price));
+    if (!name || !isFinite(price)) return;
+    out.push({
+      id: String(p.id || ('p' + Math.random().toString(36).slice(2, 9))),
+      name: name,
+      price: price,
+      cat: String(p.cat || '').trim() || 'Sonstiges',
+      color: safeColor(p.color),
+      active: p.active !== false
+    });
+  });
+  return out;
+}
+function validSale(s) {
+  return s && typeof s.t === 'number' && typeof s.s === 'number' && Array.isArray(s.items);
+}
+
+var salesCache = {};
+function salesOf(day) {
+  if (!salesCache[day]) {
+    var list = load('sales.' + day, []);
+    salesCache[day] = Array.isArray(list) ? list.filter(validSale) : [];
+  }
+  return salesCache[day];
+}
+function saveSales(day, list) {
+  if (!save('sales.' + day, list)) return false;
+  salesCache[day] = list;
+  var days = S.days.slice();
+  var has = days.indexOf(day) >= 0;
+  if (list.length && !has) { days.push(day); days.sort(); }
+  if (!list.length && has) { days = days.filter(function (d) { return d !== day; }); }
+  if (days.length !== S.days.length) { S.days = days; save('days', days); }
+  return true;
+}
+
+/* ---------- Zustand ---------- */
+var storedProducts = cleanProducts(load('products', null));
+var storedDays = load('days', []);
+var S = {
+  products: storedProducts || clone(DEFAULT_PRODUCTS),
+  cart: load('cart', {}) || {},
+  given: Number(load('given', 0)) || 0,
+  days: Array.isArray(storedDays) ? storedDays.filter(function (d) { return /^\d{4}-\d{2}-\d{2}$/.test(d); }).sort() : [],
+  view: 'kasse',
+  period: { type: 'today' },
+  hour: null,
+  allChart: 'day',
+  edit: null,
+  undoArmed: false,
+  pad: ''
+};
+if (!storedProducts) save('products', S.products);
+Object.keys(S.cart).forEach(function (id) {
+  if (!productById(id) || !(S.cart[id] > 0)) delete S.cart[id];
+});
+
+var standalone = window.navigator.standalone === true ||
+  (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+
+function productById(id) { return S.products.filter(function (p) { return p.id === id; })[0]; }
+function categories() {
+  var out = [];
+  S.products.forEach(function (p) { if (out.indexOf(p.cat) < 0) out.push(p.cat); });
+  return out;
+}
+function cartLines() {
+  return S.products.filter(function (p) { return (S.cart[p.id] || 0) > 0; })
+    .map(function (p) { return { p: p, q: S.cart[p.id] }; });
+}
+function cartTotal() { return sumBy(cartLines(), function (l) { return l.q * l.p.price; }); }
+function persistCart() { save('cart', S.cart); save('given', S.given); }
+
+/* ---------- Anzeige: Kopfzeile ---------- */
+function render() {
+  renderHeader();
+  if (S.view === 'kasse') renderKasse();
+  else if (S.view === 'auswertung') renderStats();
+  else renderProducts();
+}
+function renderHeader() {
+  document.querySelectorAll('.tab').forEach(function (t) {
+    if (t.dataset.arg === S.view) t.setAttribute('aria-current', 'page');
+    else t.removeAttribute('aria-current');
+  });
+  ['kasse', 'auswertung', 'produkte'].forEach(function (v) { $('view-' + v).hidden = v !== S.view; });
+  var list = salesOf(todayKey());
+  $('todayCount').textContent = 'Heute · ' + list.length + (list.length === 1 ? ' Verkauf' : ' Verkäufe');
+  $('todayTotal').textContent = money(sumBy(list, function (s) { return s.s; }));
+  renderStatus();
+}
+function renderStatus() {
+  var el = $('status');
+  if (!el) return;
+  var cls, txt, act = '';
+  if (!storageOk || !saveOk) { cls = 'bad'; txt = 'Speichern nicht möglich'; act = 'storageInfo'; }
+  else if (!standalone) { cls = 'warn'; txt = 'Im Browser geöffnet'; act = 'installInfo'; }
+  else { cls = 'ok'; txt = 'Alles gespeichert'; }
+  el.innerHTML = act
+    ? '<button class="pill ' + cls + '" data-act="' + act + '"><span class="dot"></span>' + txt + '</button>'
+    : '<span class="pill ' + cls + '"><span class="dot"></span>' + txt + '</span>';
+}
+
+/* ---------- Anzeige: Kasse ---------- */
+function renderKasse() {
+  var active = S.products.filter(function (p) { return p.active; });
+  $('tiles').innerHTML = active.length ? active.map(function (p) {
+    var q = S.cart[p.id] || 0;
+    return '<button class="tile" data-act="add" data-arg="' + esc(p.id) + '" style="background:' + p.color + ';color:' + fgFor(p.color) + '" aria-label="' + esc(p.name) + ', ' + money(p.price) + ', hinzufügen">' +
+      '<span class="tile-top"><span class="tile-cat">' + esc(p.cat) + '</span>' + (q ? '<span class="badge">' + q + '</span>' : '') + '</span>' +
+      '<span class="tile-bottom"><span class="tile-name">' + esc(p.name) + '</span><span class="tile-price">' + money(p.price) + '</span></span></button>';
+  }).join('') : '<div class="empty wide"><strong>Noch keine Produkte auf der Kasse</strong><span>Lege unter „Produkte“ deine Artikel an.</span><button class="btn light" data-act="nav" data-arg="produkte">Zu den Produkten</button></div>';
+
+  var lines = cartLines();
+  $('lines').innerHTML = lines.length ? lines.map(function (l) {
+    var id = esc(l.p.id), n = esc(l.p.name);
+    return '<div class="line"><button class="step" data-act="dec" data-arg="' + id + '" aria-label="Eins weniger: ' + n + '">' + ICON.minus + '</button>' +
+      '<span class="qty">' + l.q + '</span>' +
+      '<button class="step" data-act="inc" data-arg="' + id + '" aria-label="Eins mehr: ' + n + '">' + ICON.plus + '</button>' +
+      '<span class="line-name">' + n + '</span><span class="line-sum">' + money(l.q * l.p.price) + '</span></div>';
+  }).join('') : '<div class="empty"><strong>Bon ist leer</strong><span>Tippe links auf ein Produkt.</span></div>';
+
+  var total = cartTotal();
+  $('sum').textContent = money(total);
+  $('givenAmt').textContent = money(S.given);
+
+  var cls, label, value;
+  if (!lines.length) { cls = ''; label = 'Rückgeld'; value = '–'; }
+  else if (total <= 0) { cls = 'out'; label = total < 0 ? 'Auszahlen' : 'Rückgeld'; value = money(S.given - total); }
+  else if (S.given === 0) { cls = 'ask'; label = 'Wie viel gibt der Kunde?'; value = ''; }
+  else if (S.given < total) { cls = 'short'; label = 'Fehlen noch'; value = money(total - S.given); }
+  else { cls = 'ok'; label = 'Rückgeld'; value = money(S.given - total); }
+  var chg = $('chg');
+  chg.className = 'chg ' + cls;
+  chg.innerHTML = '<span>' + label + '</span><strong>' + value + '</strong>';
+  $('pay').disabled = !(lines.length && (total <= 0 || S.given >= total));
+  renderLast();
+}
+function renderLast() {
+  var list = salesOf(todayKey());
+  var s = list[list.length - 1];
+  var el = $('last');
+  if (!s) { el.innerHTML = '<span class="last-text muted">Heute noch kein Verkauf.</span>'; return; }
+  var n = sumBy(s.items, function (i) { return i.q; });
+  el.innerHTML = '<span class="last-label">Letzter Verkauf</span>' +
+    '<span class="last-text">' + hhmm(s.t) + ' Uhr · Bon ' + s.no + ' · ' + n + ' Artikel · ' + money(s.s) + ' · Rückgeld ' + money(s.g - s.s) + '</span>' +
+    '<button class="btn' + (S.undoArmed ? ' armed' : '') + '" data-act="undo">' + ICON.undo + (S.undoArmed ? 'Wirklich stornieren?' : 'Rückgängig') + '</button>';
+}
+function flash(id) {
+  var el = document.querySelector('.tile[data-arg="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+  if (el) { el.classList.remove('hit'); void el.offsetWidth; el.classList.add('hit'); }
+}
+
+function completeSale() {
+  var lines = cartLines();
+  if (!lines.length) return;
+  var total = cartTotal();
+  if (total > 0 && S.given < total) return;
+  var now = new Date(), day = dayKey(now);
+  var list = salesOf(day).slice();
+  var no = list.reduce(function (m, s) { return Math.max(m, s.no || 0); }, 0) + 1;
+  list.push({
+    no: no,
+    t: now.getTime(),
+    items: lines.map(function (l) { return { id: l.p.id, n: l.p.name, c: l.p.cat, col: l.p.color, q: l.q, p: l.p.price }; }),
+    s: total,
+    g: S.given
+  });
+  if (!saveSales(day, list)) return;
+  S.cart = {};
+  S.given = 0;
+  S.undoArmed = false;
+  persistCart();
+  toast('Verkauf gespeichert · Bon ' + no);
+  render();
+}
+
+var undoTimer = null;
+function undoLast() {
+  if (!S.undoArmed) {
+    S.undoArmed = true;
+    renderLast();
+    clearTimeout(undoTimer);
+    undoTimer = setTimeout(function () { S.undoArmed = false; if (S.view === 'kasse') renderLast(); }, 4000);
+    return;
+  }
+  clearTimeout(undoTimer);
+  S.undoArmed = false;
+  var day = todayKey();
+  var list = salesOf(day).slice();
+  var s = list.pop();
+  if (!s) return;
+  if (!saveSales(day, list)) return;
+  var restored = false;
+  if (!cartLines().length) {
+    s.items.forEach(function (it) { if (productById(it.id)) { S.cart[it.id] = (S.cart[it.id] || 0) + it.q; restored = true; } });
+    S.given = 0;
+    persistCart();
+  }
+  toast(restored ? 'Verkauf storniert – Artikel sind wieder im Bon' : 'Verkauf storniert');
+  render();
+}
+
+/* ---------- Tastenfeld für „Kunde gibt“ ---------- */
+function openKeypad() {
+  S.pad = '';
+  var keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', 'del'];
+  openModal('<h2 id="modal-title">Kunde gibt</h2>' +
+    '<div class="pad-display" id="padDisplay">0,00 €</div>' +
+    '<div class="pad">' + keys.map(function (k) {
+      return '<button class="padkey" data-act="pad" data-arg="' + k + '"' + (k === 'del' ? ' aria-label="Letzte Ziffer löschen"' : '') + '>' + (k === 'del' ? ICON.back : k) + '</button>';
+    }).join('') + '</div>' +
+    '<div class="modal-actions"><button class="btn ghost" data-act="modalClose">Abbrechen</button><button class="btn primary" data-act="padOk">Übernehmen</button></div>');
+}
+
+/* ---------- Anzeige: Auswertung ---------- */
+function resolvePeriod() {
+  var t = todayKey();
+  if (S.period.type === 'today') return { days: [t], label: 'Heute', single: true, day: t };
+  if (S.period.type === 'yesterday') {
+    var d = new Date(); d.setDate(d.getDate() - 1);
+    var y = dayKey(d);
+    return { days: [y], label: 'Gestern', single: true, day: y };
+  }
+  if (S.period.type === 'day') return { days: [S.period.day], label: fmtDay(S.period.day), single: true, day: S.period.day };
+  return { days: S.days.slice(), label: 'Ganzer Markt', single: false };
+}
+function aggregate(sales, hour) {
+  var prods = {}, order = [], cats = {}, catOrder = [], rev = 0, items = 0;
+  sales.forEach(function (s) {
+    if (hour != null && new Date(s.t).getHours() !== hour) return;
+    s.items.forEach(function (it) {
+      var v = it.p * it.q, k = String(it.id);
+      if (!prods[k]) { prods[k] = { name: it.n, cat: it.c, color: safeColor(it.col), qty: 0, rev: 0 }; order.push(k); }
+      prods[k].name = it.n;
+      prods[k].qty += it.q;
+      prods[k].rev += v;
+      if (!cats[it.c]) { cats[it.c] = { name: it.c, color: safeColor(it.col), rev: 0 }; catOrder.push(it.c); }
+      cats[it.c].rev += v;
+      rev += v;
+      items += it.q;
+    });
+  });
+  return {
+    prods: order.map(function (k) { return prods[k]; }).sort(function (a, b) { return b.rev - a.rev || b.qty - a.qty; }),
+    cats: catOrder.map(function (k) { return cats[k]; }).sort(function (a, b) { return b.rev - a.rev; }),
+    rev: rev,
+    items: items
+  };
+}
+function hourBuckets(sales) {
+  var m = {}, hs = [];
+  sales.forEach(function (s) {
+    var h = new Date(s.t).getHours();
+    if (!m[h]) { m[h] = { rev: 0, n: 0 }; hs.push(h); }
+    m[h].rev += s.s;
+    m[h].n += 1;
+  });
+  if (!hs.length) return [];
+  var lo = Math.min.apply(null, hs), hi = Math.max.apply(null, hs), out = [];
+  for (var h = lo; h <= hi; h++) out.push({ h: h, rev: m[h] ? m[h].rev : 0, n: m[h] ? m[h].n : 0 });
+  return out;
+}
+function barsHtml(data, anySel) {
+  var vals = data.map(function (d) { return d.val; });
+  var max = Math.max.apply(null, [1].concat(vals));
+  var peak = Math.max.apply(null, vals);
+  return '<div class="chart' + (data.length > 14 ? ' dense' : '') + '">' + data.map(function (d) {
+    var h = Math.max(0, Math.round(d.val / max * 86));
+    var cls = (d.val === peak && d.val > 0 ? ' peak' : '') + (d.sel ? ' sel' : '') + (anySel && !d.sel ? ' dim' : '');
+    return '<button class="bar-col' + cls + '" data-act="' + d.act + '" data-arg="' + esc(d.arg) + '" aria-label="' + esc(d.aria) + '">' +
+      '<span class="bar-val">' + esc(d.short) + '</span><span class="bar" style="height:' + h + '%"></span></button>';
+  }).join('') + '</div><div class="axis" aria-hidden="true">' + data.map(function (d) { return '<span>' + esc(d.label) + '</span>'; }).join('') + '</div>';
+}
+function euroShort(c) { return Math.round(c / 100).toLocaleString('de-DE') + ' €'; }
+
+function renderStats() {
+  var P = resolvePeriod();
+  var sales = [];
+  P.days.forEach(function (d) { sales = sales.concat(salesOf(d)); });
+  var rev = sumBy(sales, function (s) { return s.s; });
+  var cnt = sales.length;
+  var itemsN = sumBy(sales, function (s) { return sumBy(s.items, function (i) { return i.q; }); });
+  var lastExp = load('lastExport', null);
+  var type = S.period.type;
+
+  var dayOpts = S.days.slice().reverse().map(function (d) {
+    var r = sumBy(salesOf(d), function (s) { return s.s; });
+    return '<option value="' + d + '"' + (type === 'day' && S.period.day === d ? ' selected' : '') + '>' + fmtDay(d) + ' – ' + money(r) + '</option>';
+  }).join('');
+
+  var periodText = P.single ? (P.label === fmtDay(P.day) ? P.label : P.label + ' · ' + fmtDay(P.day))
+    : 'Ganzer Markt · ' + S.days.length + (S.days.length === 1 ? ' Tag' : ' Tage');
+
+  var html = '<div class="toolbar"><div class="toolbar-left">' +
+    '<div class="seg" role="group" aria-label="Zeitraum">' +
+      '<button data-act="period" data-arg="today" aria-pressed="' + (type === 'today') + '">Heute</button>' +
+      '<button data-act="period" data-arg="yesterday" aria-pressed="' + (type === 'yesterday') + '">Gestern</button>' +
+      '<button data-act="period" data-arg="all" aria-pressed="' + (type === 'all') + '">Ganzer Markt</button>' +
+    '</div>' +
+    '<label class="sr" for="daySel">Tag wählen</label>' +
+    '<select id="daySel" class="select"' + (S.days.length ? '' : ' disabled') + '><option value="">' + (S.days.length ? 'Tag wählen …' : 'Noch keine Tage') + '</option>' + dayOpts + '</select>' +
+    '</div><div class="toolbar-right">' +
+    '<span class="muted small">' + (lastExp ? 'Letzter Export: ' + fmtDay(dayKey(new Date(lastExp))) + ' ' + hhmm(lastExp) + ' Uhr' : 'Noch nichts exportiert') + '</span>' +
+    '<button class="btn light tall" data-act="exportMenu">' + ICON.download + 'Export &amp; Sicherung</button>' +
+    '</div></div>' +
+    '<p class="period">' + esc(periodText) + '</p>' +
+    '<div class="kpis">' +
+      kpi('Umsatz', money(rev), 'Alle abgeschlossenen Verkäufe') +
+      kpi('Verkäufe', String(cnt), 'Anzahl Bons') +
+      kpi('Ø pro Verkauf', cnt ? money(rev / cnt) : '–', 'Umsatz ÷ Verkäufe') +
+      kpi('Artikel', String(itemsN), 'Stück verkauft') +
+    '</div>';
+
+  if (!cnt) {
+    html += '<div class="empty" style="min-height:240px;flex:none"><strong>Keine Verkäufe in diesem Zeitraum</strong><span>Sobald an der Kasse verkauft wird, erscheinen hier die Zahlen.</span></div>';
+    $('view-auswertung').innerHTML = html;
+    return;
+  }
+
+  var byDay = !P.single && S.days.length > 1 && S.allChart === 'day';
+  var chartHtml, chartTitle, chartNote;
+  if (byDay) {
+    var dayData = S.days.map(function (d) {
+      var r = sumBy(salesOf(d), function (s) { return s.s; });
+      return { val: r, label: fmtDay(d).slice(3, 9), short: euroShort(r), act: 'openDay', arg: d, aria: fmtDay(d) + ': ' + money(r) + '. Tippen für Details', sel: false };
+    });
+    var best = dayData.slice().sort(function (a, b) { return b.val - a.val; })[0];
+    chartTitle = 'Umsatz pro Tag';
+    chartNote = 'Bester Tag: <strong style="color:var(--tx)">' + fmtDay(best.arg) + ' · ' + money(best.val) + '</strong>';
+    chartHtml = barsHtml(dayData, false) + '<span class="muted small">Tippe auf einen Tag, um ihn genauer anzusehen.</span>';
+  } else {
+    var hb = hourBuckets(sales);
+    var hourData = hb.map(function (b) {
+      return { val: b.rev, label: String(b.h), short: euroShort(b.rev), act: 'hour', arg: String(b.h), aria: b.h + ' bis ' + (b.h + 1) + ' Uhr: ' + money(b.rev) + ', ' + b.n + ' Verkäufe', sel: S.hour === b.h };
+    });
+    var bestH = hb.slice().sort(function (a, b) { return b.rev - a.rev; })[0];
+    chartTitle = 'Umsatz pro Stunde';
+    chartNote = 'Stärkste Stunde: <strong style="color:var(--tx)">' + bestH.h + '–' + (bestH.h + 1) + ' Uhr · ' + money(bestH.rev) + '</strong>';
+    chartHtml = barsHtml(hourData, S.hour != null) + '<span class="muted small">Uhrzeit (Stundenbeginn). Tippe auf eine Stunde, um rechts nur diese Stunde zu sehen.</span>';
+  }
+  var chartSwitch = (!P.single && S.days.length > 1)
+    ? '<div class="seg mini" role="group" aria-label="Diagramm"><button data-act="allChart" data-arg="day" aria-pressed="' + (S.allChart === 'day') + '">pro Tag</button><button data-act="allChart" data-arg="hour" aria-pressed="' + (S.allChart === 'hour') + '">pro Stunde</button></div>'
+    : '';
+
+  var hourSel = byDay ? null : S.hour;
+  var A = aggregate(sales, hourSel);
+  var posTotal = sumBy(A.cats, function (c) { return Math.max(0, c.rev); }) || 1;
+  var maxShare = Math.max.apply(null, [1].concat(A.prods.map(function (p) { return p.rev; })));
+  var prodTitle = 'Nach Produkt' + (hourSel != null ? ' · ' + hourSel + '–' + (hourSel + 1) + ' Uhr' : '');
+  var prodRight = hourSel != null
+    ? '<button class="chipbtn" data-act="hour" data-arg="' + hourSel + '">Alle Stunden ' + ICON.x + '</button>'
+    : '<span class="muted small">sortiert nach Umsatz</span>';
+
+  var rows = A.prods.length ? A.prods.map(function (p) {
+    var pct = A.rev ? p.rev / A.rev * 100 : 0;
+    var w = Math.max(0, Math.round(p.rev / maxShare * 100));
+    return '<div class="trow" role="row"><span class="tname" role="cell"><span class="dot10" style="background:' + p.color + '"></span>' + esc(p.name) + '</span>' +
+      '<span class="r" role="cell">' + p.qty + '</span><span class="r" role="cell" style="font-weight:600">' + money(p.rev) + '</span>' +
+      '<span class="share" role="cell"><span class="share-track"><span class="share-fill" style="width:' + w + '%;background:' + p.color + '"></span></span><span class="share-pct">' + pct.toFixed(1).replace('.', ',') + ' %</span></span></div>';
+  }).join('') : '<p class="muted">In dieser Stunde wurde nichts verkauft.</p>';
+
+  html += '<div class="panels">' +
+    '<section class="card chart-card" aria-labelledby="h-chart"><div class="card-head"><h2 id="h-chart">' + chartTitle + '</h2>' + chartSwitch + '</div>' +
+      '<span class="muted small">' + chartNote + '</span>' + chartHtml + '</section>' +
+    '<section class="card prod-card" aria-labelledby="h-prod"><div class="card-head"><h2 id="h-prod">' + prodTitle + '</h2>' + prodRight + '</div>' +
+      '<div class="split" aria-hidden="true">' + A.cats.filter(function (c) { return c.rev > 0; }).map(function (c) {
+        return '<span style="width:' + (c.rev / posTotal * 100).toFixed(2) + '%;background:' + c.color + '"></span>';
+      }).join('') + '</div>' +
+      '<div class="legend">' + A.cats.map(function (c) {
+        return '<span><span class="dot10" style="background:' + c.color + '"></span>' + esc(c.name) + ' <strong>' + money(c.rev) + '</strong></span>';
+      }).join('') + '</div>' +
+      '<div role="table" aria-label="Verkäufe nach Produkt"><div class="trow head" role="row"><span role="columnheader">Produkt</span><span class="r" role="columnheader">Stück</span><span class="r" role="columnheader">Umsatz</span><span class="r" role="columnheader">Anteil</span></div>' + rows + '</div>' +
+    '</section></div>';
+
+  $('view-auswertung').innerHTML = html;
+}
+function kpi(label, value, sub) {
+  return '<div class="kpi"><span>' + label + '</span><strong>' + value + '</strong><small>' + sub + '</small></div>';
+}
+
+/* ---------- Export & Sicherung ---------- */
+function csvCell(v) {
+  var s = String(v == null ? '' : v);
+  return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function toCsv(rows) {
+  return '﻿' + rows.map(function (r) { return r.map(csvCell).join(';'); }).join('\r\n');
+}
+function shareFile(name, text, mime) {
+  var blob = new Blob([text], { type: mime });
+  var file = null;
+  try { file = new File([blob], name, { type: mime }); } catch (e) {}
+  if (file && navigator.canShare && navigator.share) {
+    var can = false;
+    try { can = navigator.canShare({ files: [file] }); } catch (e) {}
+    if (can) {
+      navigator.share({ files: [file], title: name }).then(function () {
+        save('lastExport', Date.now());
+        toast('Datei gesichert');
+        if (S.view === 'auswertung') renderStats();
+      }).catch(function (err) {
+        if (err && err.name === 'AbortError') return;
+        downloadFallback(blob, name);
+      });
+      return;
+    }
+  }
+  downloadFallback(blob, name);
+}
+function downloadFallback(blob, name) {
+  try {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 20000);
+    save('lastExport', Date.now());
+    if (S.view === 'auswertung') renderStats();
+  } catch (e) {
+    toast('Export hat nicht geklappt', true);
+  }
+}
+function allSalesFlat() {
+  var out = [];
+  S.days.forEach(function (d) { salesOf(d).forEach(function (s) { out.push({ day: d, s: s }); }); });
+  return out;
+}
+function exportItems() {
+  var all = allSalesFlat();
+  if (!all.length) { toast('Noch keine Verkäufe vorhanden', true); return; }
+  var rows = [['Datum', 'Uhrzeit', 'Bon', 'Produkt', 'Kategorie', 'Menge', 'Einzelpreis', 'Summe', 'Bon gesamt', 'Gegeben', 'Rückgeld']];
+  all.forEach(function (x) {
+    var s = x.s;
+    s.items.forEach(function (it) {
+      rows.push([fmtDate(x.day), hhmm(s.t), s.no, it.n, it.c, it.q, plain(it.p), plain(it.p * it.q), plain(s.s), plain(s.g), plain(s.g - s.s)]);
+    });
+  });
+  shareFile('kasse-verkaeufe-' + todayKey() + '.csv', toCsv(rows), 'text/csv');
+}
+function exportSummary() {
+  if (!S.days.length) { toast('Noch keine Verkäufe vorhanden', true); return; }
+  var rows = [['Datum', 'Produkt', 'Kategorie', 'Menge', 'Umsatz']];
+  var everything = [];
+  S.days.forEach(function (d) {
+    var list = salesOf(d);
+    everything = everything.concat(list);
+    var a = aggregate(list, null);
+    a.prods.forEach(function (p) { rows.push([fmtDate(d), p.name, p.cat, p.qty, plain(p.rev)]); });
+    rows.push([fmtDate(d), 'SUMME TAG', '', a.items, plain(a.rev)]);
+  });
+  rows.push([]);
+  rows.push(['Zeitraum', 'Produkt', 'Kategorie', 'Menge', 'Umsatz']);
+  var all = aggregate(everything, null);
+  all.prods.forEach(function (p) { rows.push(['Ganzer Markt', p.name, p.cat, p.qty, plain(p.rev)]); });
+  rows.push(['Ganzer Markt', 'SUMME', '', all.items, plain(all.rev)]);
+  rows.push([]);
+  rows.push(['Datum', 'Stunde', 'Verkäufe', 'Umsatz']);
+  S.days.forEach(function (d) {
+    hourBuckets(salesOf(d)).forEach(function (b) {
+      if (b.n) rows.push([fmtDate(d), pad2(b.h) + '–' + pad2(b.h + 1) + ' Uhr', b.n, plain(b.rev)]);
+    });
+  });
+  shareFile('kasse-uebersicht-' + todayKey() + '.csv', toCsv(rows), 'text/csv');
+}
+function exportBackup() {
+  var data = { app: 'kasse', version: 1, exportedAt: new Date().toISOString(), products: S.products, days: S.days, sales: {} };
+  S.days.forEach(function (d) { data.sales[d] = salesOf(d); });
+  shareFile('kasse-sicherung-' + todayKey() + '.json', JSON.stringify(data), 'application/json');
+}
+function openExport() {
+  openModal('<h2 id="modal-title">Export &amp; Sicherung</h2>' +
+    '<p>Die Datei wird über „Teilen“ weitergegeben – z. B. mit „In Dateien sichern“, AirDrop oder Mail. Tipp: Jeden Abend einmal sichern.</p>' +
+    '<div class="menu">' +
+      '<button class="menu-item" data-act="expSummary"><strong>Übersicht für Excel</strong><span>Pro Tag: Menge und Umsatz je Produkt, dazu Umsatz pro Stunde</span></button>' +
+      '<button class="menu-item" data-act="expItems"><strong>Alle Verkäufe einzeln für Excel</strong><span>Jede verkaufte Position mit Datum und Uhrzeit</span></button>' +
+      '<button class="menu-item" data-act="expBackup"><strong>Komplette Sicherung</strong><span>Produkte und alle Verkäufe als Datei, zum Wiederherstellen</span></button>' +
+      '<button class="menu-item" data-act="impBackup"><strong>Sicherung laden</strong><span>Ersetzt alle Daten auf diesem iPad durch die Datei</span></button>' +
+      '<button class="menu-item danger" data-act="wipeSales"><strong>Alle Verkäufe löschen</strong><span>Z. B. nach dem Testen, vor dem ersten Markttag</span></button>' +
+    '</div>' +
+    '<div class="modal-actions"><button class="btn ghost" data-act="modalClose">Schließen</button></div>');
+}
+function wipeSales() {
+  var n = sumBy(S.days, function (d) { return salesOf(d).length; });
+  if (!n) { closeModal(); toast('Es gibt keine Verkäufe zum Löschen'); return; }
+  ask('Alle Verkäufe löschen?', n + ' Verkäufe an ' + S.days.length + (S.days.length === 1 ? ' Tag' : ' Tagen') + ' werden gelöscht. Die Produkte bleiben erhalten. Tipp: Vorher eine Sicherung speichern.', 'Weiter', true)
+    .then(function (ok) {
+      if (!ok) return null;
+      return ask('Wirklich endgültig löschen?', 'Das kann nicht rückgängig gemacht werden.', 'Endgültig löschen', true);
+    })
+    .then(function (ok) {
+      if (!ok) return;
+      S.days.forEach(function (d) { removeKey('sales.' + d); delete salesCache[d]; });
+      S.days = [];
+      save('days', []);
+      S.period = { type: 'today' };
+      S.hour = null;
+      toast('Alle Verkäufe gelöscht');
+      render();
+    });
+}
+function importBackup(file) {
+  file.text().then(function (txt) {
+    var data;
+    try { data = JSON.parse(txt); } catch (e) { toast('Die Datei ist keine gültige Sicherung', true); return; }
+    if (!data || data.app !== 'kasse' || !Array.isArray(data.products) || !data.sales || typeof data.sales !== 'object') {
+      toast('Die Datei ist keine Kassen-Sicherung', true);
+      return;
+    }
+    var days = Object.keys(data.sales).filter(function (d) { return /^\d{4}-\d{2}-\d{2}$/.test(d) && Array.isArray(data.sales[d]); }).sort();
+    var n = sumBy(days, function (d) { return data.sales[d].length; });
+    ask('Sicherung laden?', 'Die Datei enthält ' + data.products.length + ' Produkte und ' + n + ' Verkäufe an ' + days.length + ' Tagen. Alle aktuellen Daten auf diesem iPad werden dadurch ersetzt.', 'Ersetzen', true)
+      .then(function (ok) {
+        if (!ok) return;
+        S.days.forEach(function (d) { removeKey('sales.' + d); delete salesCache[d]; });
+        var good = true, kept = [];
+        days.forEach(function (d) {
+          var list = data.sales[d].filter(validSale);
+          if (!list.length) return;
+          if (!save('sales.' + d, list)) good = false;
+          salesCache[d] = list;
+          kept.push(d);
+        });
+        S.days = kept;
+        save('days', kept);
+        S.products = cleanProducts(data.products) || [];
+        save('products', S.products);
+        S.cart = {};
+        S.given = 0;
+        persistCart();
+        S.edit = null;
+        S.period = { type: 'today' };
+        S.hour = null;
+        toast(good ? 'Sicherung geladen' : 'Sicherung nur teilweise geladen', !good);
+        render();
+      });
+  }).catch(function () { toast('Datei konnte nicht gelesen werden', true); });
+}
+
+/* ---------- Anzeige: Produkte ---------- */
+function selectProduct(id) {
+  var p = productById(id);
+  if (!p) return;
+  S.edit = { id: p.id, name: p.name, price: plain(p.price), cat: p.cat, color: p.color, newCat: false, newCatName: '' };
+}
+function renderProducts() { renderPlist(); renderEditor(); }
+function renderPlist() {
+  var activeN = S.products.filter(function (p) { return p.active; }).length;
+  $('psum').textContent = S.products.length + ' Produkte · ' + activeN + ' auf der Kasse';
+  if (!S.products.length) {
+    $('plist').innerHTML = '<div class="empty"><strong>Noch keine Produkte</strong><span>Tippe oben auf „Neues Produkt“.</span></div>';
+    return;
+  }
+  $('plist').innerHTML = categories().map(function (c) {
+    var items = S.products.filter(function (p) { return p.cat === c; });
+    return '<div class="pgroup"><div class="pgroup-head"><span class="dot10" style="background:' + items[0].color + '"></span>' + esc(c) + '<span class="cnt">· ' + items.length + '</span></div>' +
+      items.map(function (p, i) { return prow(p, i === 0, i === items.length - 1); }).join('') + '</div>';
+  }).join('');
+}
+function prow(p, first, last) {
+  var sel = S.edit && S.edit.id === p.id;
+  var id = esc(p.id), n = esc(p.name);
+  return '<div class="prow' + (sel ? ' sel' : '') + (p.active ? '' : ' off') + '">' +
+    '<div class="mv"><button class="mvbtn" data-act="up" data-arg="' + id + '" aria-label="' + n + ' nach oben"' + (first ? ' disabled' : '') + '>' + ICON.up + '</button>' +
+    '<button class="mvbtn" data-act="down" data-arg="' + id + '" aria-label="' + n + ' nach unten"' + (last ? ' disabled' : '') + '>' + ICON.down + '</button></div>' +
+    '<span class="sw-md" style="background:' + p.color + '"></span>' +
+    '<button class="pname" data-act="edit" data-arg="' + id + '">' + n + '</button>' +
+    '<span class="pprice">' + money(p.price) + '</span>' +
+    '<button class="switch' + (p.active ? ' on' : '') + '" data-act="toggle" data-arg="' + id + '" aria-pressed="' + p.active + '" aria-label="Auf der Kasse anzeigen: ' + n + '"><span class="track"><span class="knob"></span></span></button>' +
+    '<button class="step" data-act="edit" data-arg="' + id + '" aria-label="Bearbeiten: ' + n + '">' + ICON.edit + '</button></div>';
+}
+function renderEditor() {
+  var E = S.edit, el = $('editor');
+  if (!E) {
+    el.innerHTML = '<div class="empty"><strong>Kein Produkt ausgewählt</strong><span>Wähle links ein Produkt oder lege ein neues an.</span><button class="btn light" data-act="newProd">' + ICON.plus + 'Neues Produkt</button></div>';
+    return;
+  }
+  var isNew = E.id === 'new';
+  var cats = categories();
+  if (E.cat && cats.indexOf(E.cat) < 0) cats.push(E.cat);
+  el.innerHTML = '<h2>' + (isNew ? 'Neues Produkt' : 'Produkt bearbeiten') + '</h2>' +
+    '<div class="field"><span class="flabel">Vorschau auf der Kasse</span><div class="tile preview" id="pv"></div></div>' +
+    '<div class="field"><label class="flabel" for="f-name">Name</label><input id="f-name" class="input" data-field="name" value="' + esc(E.name) + '" placeholder="z. B. Glühwein" autocomplete="off" autocorrect="off" enterkeyhint="done"></div>' +
+    '<div class="field"><label class="flabel" for="f-price">Preis</label><div class="money-in"><input id="f-price" class="input" data-field="price" value="' + esc(E.price) + '" placeholder="0,00" inputmode="decimal" autocomplete="off" enterkeyhint="done"><span>€</span></div>' +
+      '<span class="muted small">Für Pfand-Rückgabe einen Minus-Preis eintragen, z. B. -3,00</span></div>' +
+    '<div class="field"><span class="flabel" id="l-cat">Kategorie</span><div class="chips" role="group" aria-labelledby="l-cat">' +
+      cats.map(function (c) { return '<button class="chip" data-act="pickCat" data-arg="' + esc(c) + '" aria-pressed="' + (!E.newCat && E.cat === c) + '">' + esc(c) + '</button>'; }).join('') +
+      '<button class="chip" data-act="newCat" aria-pressed="' + E.newCat + '">' + ICON.plus + 'Neu</button></div>' +
+      (E.newCat ? '<input id="f-cat" class="input" data-field="newcat" value="' + esc(E.newCatName) + '" placeholder="Name der neuen Kategorie" aria-label="Name der neuen Kategorie" autocomplete="off" enterkeyhint="done">' : '') +
+    '</div>' +
+    '<div class="field"><span class="flabel" id="l-col">Farbe der Taste</span><div class="swatches" role="group" aria-labelledby="l-col">' +
+      PALETTE.map(function (c) {
+        return '<button class="swatch" data-act="pickColor" data-arg="' + c.hex + '" aria-label="' + c.name + '" aria-pressed="' + (E.color.toLowerCase() === c.hex.toLowerCase()) + '" style="background:' + c.hex + '"></button>';
+      }).join('') + '</div></div>' +
+    '<div class="editor-actions"><button class="btn primary big" data-act="saveProd">' + (isNew ? 'Produkt anlegen' : 'Speichern') + '</button>' +
+      (isNew ? '<button class="linkbtn" data-act="cancelNew">Abbrechen</button>' : '<button class="linkbtn danger" data-act="delProd">Produkt löschen</button>') + '</div>';
+  updatePreview();
+}
+function updatePreview() {
+  var E = S.edit, pv = $('pv');
+  if (!E || !pv) return;
+  var price = parseMoney(E.price);
+  var cat = E.newCat ? (E.newCatName.trim() || 'Neue Kategorie') : E.cat;
+  pv.style.background = E.color;
+  pv.style.color = fgFor(E.color);
+  pv.innerHTML = '<span class="tile-top"><span class="tile-cat">' + esc(cat) + '</span></span>' +
+    '<span class="tile-bottom"><span class="tile-name">' + esc(E.name.trim() || 'Produktname') + '</span><span class="tile-price">' + (price === null ? '–' : money(price)) + '</span></span>';
+}
+function newProduct() {
+  var cats = categories();
+  S.edit = { id: 'new', name: '', price: '', cat: cats[0] || '', color: '#2F7D55', newCat: !cats.length, newCatName: '' };
+  renderProducts();
+  setTimeout(function () { var i = $('f-name'); if (i) i.focus(); }, 30);
+}
+function saveProduct() {
+  var E = S.edit;
+  if (!E) return;
+  var name = E.name.trim();
+  if (!name) { toast('Bitte einen Namen eingeben', true); return; }
+  var price = parseMoney(E.price);
+  if (price === null) { toast('Preis bitte so eingeben: 4,50', true); return; }
+  var cat = E.newCat ? E.newCatName.trim() : E.cat;
+  if (!cat) { toast('Bitte eine Kategorie wählen oder neu anlegen', true); return; }
+  if (E.id === 'new') {
+    var id = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    S.products.push({ id: id, name: name, price: price, cat: cat, color: E.color, active: true });
+    E.id = id;
+  } else {
+    var p = productById(E.id);
+    if (!p) return;
+    p.name = name; p.price = price; p.cat = cat; p.color = E.color;
+  }
+  E.name = name; E.price = plain(price); E.cat = cat; E.newCat = false; E.newCatName = '';
+  if (save('products', S.products)) toast('Gespeichert');
+  renderProducts();
+}
+function deleteProduct() {
+  var E = S.edit;
+  if (!E || E.id === 'new') return;
+  var p = productById(E.id);
+  if (!p) return;
+  ask('Produkt löschen?', '„' + p.name + '“ wird von der Kasse entfernt. Bisherige Verkäufe bleiben in der Auswertung. Zum vorübergehenden Ausblenden reicht der Schalter.', 'Löschen', true)
+    .then(function (ok) {
+      if (!ok) return;
+      S.products = S.products.filter(function (x) { return x.id !== p.id; });
+      delete S.cart[p.id];
+      save('products', S.products);
+      persistCart();
+      S.edit = null;
+      if (S.products.length) selectProduct(S.products[0].id);
+      toast('Produkt gelöscht');
+      renderProducts();
+    });
+}
+function moveProduct(id, dir) {
+  var arr = S.products;
+  var i = -1;
+  arr.forEach(function (p, k) { if (p.id === id) i = k; });
+  if (i < 0) return;
+  var cat = arr[i].cat, j = i + dir;
+  while (j >= 0 && j < arr.length && arr[j].cat !== cat) j += dir;
+  if (j < 0 || j >= arr.length) return;
+  var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+  save('products', arr);
+  renderPlist();
+}
+
+/* ---------- Dialoge & Hinweise ---------- */
+var modalResolve = null;
+function openModal(html) {
+  $('modalBox').innerHTML = html;
+  $('modal').hidden = false;
+}
+function closeModal() {
+  $('modal').hidden = true;
+  $('modalBox').innerHTML = '';
+  if (modalResolve) { var r = modalResolve; modalResolve = null; r(false); }
+}
+function resolveModal(v) {
+  var r = modalResolve;
+  modalResolve = null;
+  $('modal').hidden = true;
+  $('modalBox').innerHTML = '';
+  if (r) r(v);
+}
+function ask(title, text, okLabel, danger) {
+  return new Promise(function (res) {
+    if (modalResolve) { var old = modalResolve; modalResolve = null; old(false); }
+    openModal('<h2 id="modal-title">' + esc(title) + '</h2><p>' + esc(text) + '</p>' +
+      '<div class="modal-actions"><button class="btn ghost" data-act="modalNo">Abbrechen</button>' +
+      '<button class="btn ' + (danger ? 'danger' : 'primary') + '" data-act="modalYes">' + esc(okLabel) + '</button></div>');
+    modalResolve = res;
+  });
+}
+var toastTimer = null;
+function toast(msg, bad) {
+  var t = $('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.className = 'toast show' + (bad ? ' bad' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { t.className = 'toast' + (bad ? ' bad' : ''); }, bad ? 3500 : 1800);
+}
+
+/* ---------- Bedienung ---------- */
+var H = {
+  nav: function (v) {
+    S.view = v;
+    S.undoArmed = false;
+    if (v === 'produkte' && !S.edit && S.products.length) selectProduct(S.products[0].id);
+    render();
+  },
+  add: function (id) { S.cart[id] = (S.cart[id] || 0) + 1; persistCart(); renderKasse(); flash(id); },
+  inc: function (id) { S.cart[id] = (S.cart[id] || 0) + 1; persistCart(); renderKasse(); },
+  dec: function (id) {
+    var q = (S.cart[id] || 0) - 1;
+    if (q > 0) S.cart[id] = q; else delete S.cart[id];
+    persistCart(); renderKasse();
+  },
+  clear: function () { S.cart = {}; S.given = 0; persistCart(); renderKasse(); },
+  cash: function (c) { S.given += Number(c); save('given', S.given); renderKasse(); },
+  exact: function () { S.given = Math.max(0, cartTotal()); save('given', S.given); renderKasse(); },
+  resetGiven: function () { S.given = 0; save('given', 0); renderKasse(); },
+  keypad: function () { openKeypad(); },
+  pad: function (k) {
+    if (k === 'del') S.pad = S.pad.slice(0, -1);
+    else if (S.pad.length < 6) S.pad = (S.pad + k).replace(/^0+/, '');
+    $('padDisplay').textContent = money(Number(S.pad || 0));
+  },
+  padOk: function () { S.given = Number(S.pad || 0); save('given', S.given); closeModal(); renderKasse(); },
+  pay: function () { completeSale(); },
+  undo: function () { undoLast(); },
+
+  period: function (t) { S.period = { type: t }; S.hour = null; renderStats(); },
+  hour: function (h) { h = Number(h); S.hour = S.hour === h ? null : h; renderStats(); },
+  allChart: function (m) { S.allChart = m; S.hour = null; renderStats(); },
+  openDay: function (d) { S.period = { type: 'day', day: d }; S.hour = null; renderStats(); },
+  exportMenu: function () { openExport(); },
+  expSummary: function () { closeModal(); exportSummary(); },
+  expItems: function () { closeModal(); exportItems(); },
+  expBackup: function () { closeModal(); exportBackup(); },
+  impBackup: function () { closeModal(); var f = $('importFile'); f.value = ''; f.click(); },
+  wipeSales: function () { wipeSales(); },
+
+  newProd: function () { newProduct(); },
+  cancelNew: function () { S.edit = null; if (S.products.length) selectProduct(S.products[0].id); renderProducts(); },
+  edit: function (id) { selectProduct(id); renderProducts(); },
+  toggle: function (id) {
+    var p = productById(id);
+    if (!p) return;
+    p.active = !p.active;
+    save('products', S.products);
+    renderPlist();
+  },
+  up: function (id) { moveProduct(id, -1); },
+  down: function (id) { moveProduct(id, 1); },
+  pickCat: function (c) { S.edit.cat = c; S.edit.newCat = false; renderEditor(); },
+  newCat: function () {
+    S.edit.newCat = true;
+    renderEditor();
+    setTimeout(function () { var i = $('f-cat'); if (i) i.focus(); }, 30);
+  },
+  pickColor: function (c) { S.edit.color = c; renderEditor(); },
+  saveProd: function () { saveProduct(); },
+  delProd: function () { deleteProduct(); },
+
+  modalYes: function () { resolveModal(true); },
+  modalNo: function () { resolveModal(false); },
+  modalClose: function () { closeModal(); },
+  installInfo: function () {
+    openModal('<h2 id="modal-title">Als App auf den Home-Bildschirm</h2>' +
+      '<p>Damit die Kasse ohne Internet startet und alle Verkäufe sicher gespeichert bleiben:</p>' +
+      '<ol class="steps"><li>In Safari auf <strong>Teilen</strong> tippen (Quadrat mit Pfeil nach oben, ggf. über das Menü „…“).</li>' +
+      '<li><strong>Zum Home-Bildschirm</strong> wählen und <strong>Hinzufügen</strong> tippen.</li>' +
+      '<li>Die Kasse ab jetzt nur noch über das neue Symbol öffnen.</li></ol>' +
+      '<p>Wichtig: Das Symbol hat einen eigenen Speicher. Was hier im Browser verkauft wird, ist dort nicht zu sehen.</p>' +
+      '<div class="modal-actions"><button class="btn primary" data-act="modalClose">Verstanden</button></div>');
+  },
+  storageInfo: function () {
+    openModal('<h2 id="modal-title">Speichern klappt gerade nicht</h2>' +
+      '<p>Das iPad lässt die Kasse im Moment keine Daten speichern. Mögliche Gründe: privater Modus in Safari oder der Speicher ist voll.</p>' +
+      '<p>Bitte die Kasse über das Symbol auf dem Home-Bildschirm öffnen und eine Sicherung exportieren.</p>' +
+      '<div class="modal-actions"><button class="btn primary" data-act="modalClose">OK</button></div>');
+  }
+};
+
+document.addEventListener('click', function (e) {
+  var el = e.target.closest('[data-act]');
+  if (!el || el.disabled) return;
+  var fn = H[el.dataset.act];
+  if (fn) fn(el.dataset.arg, el, e);
+  keepAwake();
+});
+$('modal').addEventListener('click', function (e) { if (e.target.id === 'modal') closeModal(); });
+document.addEventListener('input', function (e) {
+  var f = e.target.dataset ? e.target.dataset.field : null;
+  if (!f || !S.edit) return;
+  if (f === 'name') S.edit.name = e.target.value;
+  else if (f === 'price') S.edit.price = e.target.value;
+  else if (f === 'newcat') S.edit.newCatName = e.target.value;
+  updatePreview();
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' && e.target.dataset && e.target.dataset.field) e.target.blur();
+});
+document.addEventListener('change', function (e) {
+  if (e.target.id === 'daySel' && e.target.value) {
+    S.period = { type: 'day', day: e.target.value };
+    S.hour = null;
+    renderStats();
+  }
+});
+$('importFile').addEventListener('change', function (e) {
+  var f = e.target.files && e.target.files[0];
+  if (f) importBackup(f);
+});
+
+/* Bildschirm wach halten, solange die Kasse offen ist */
+var wakeLock = null;
+function keepAwake() {
+  if (wakeLock || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+  navigator.wakeLock.request('screen').then(function (l) {
+    wakeLock = l;
+    l.addEventListener('release', function () { wakeLock = null; });
+  }).catch(function () { wakeLock = null; });
+}
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'visible') { keepAwake(); render(); }
+});
+
+/* Offline-Fähigkeit und dauerhafter Speicher */
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  try { navigator.serviceWorker.register('sw.js').catch(function () {}); } catch (e) {}
+}
+if (navigator.storage && navigator.storage.persist) {
+  try { navigator.storage.persist().catch(function () {}); } catch (e) {}
+}
+
+render();
+keepAwake();
+})();
+</script>
+</body>
+</html>
